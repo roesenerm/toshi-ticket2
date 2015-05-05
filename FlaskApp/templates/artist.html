@@ -1,0 +1,33 @@
+{% extends "template.html" %}
+{% block body%}
+
+<html>
+<head>
+	<title>Artist</title>
+</head>
+<body>
+	<div class="container">
+
+	{% for post in posts %}
+      		<h3>{{ post.name }}<h3><br>
+      		<p>{{ post.issuing_public_address }}</p><br>
+            <a href="/artist"><img src= {{ post.image }} alt="color qrcode"></a><br>
+            <img src= {{ post.qrcode }} alt="color qrcode"><br>
+            <form class="form-horizontal" action="" method="post">
+                <p><input type="hidden" placeholder="From Public Address" name="from_public_address" value={{ post.issuing_public_address }}></p>
+                <p><input type="number" placeholder="Number of Tickets" name="transfer_amount" value="{{request.form.transfer_amount}}"></p>
+                <p><input type="hidden" placeholder="Issuing Address" name="issuing_public_address" value={{ post.issuing_public_address }}></p>
+                <p><input class="btn btn-custom" type="submit" value="Buy"></p>
+            </form>
+          </div>
+          {% if error %}
+            <p class="error"><strong>Error:</strong> {{ error }}</p>
+          {% endif %}
+	{% endfor %}
+
+	</div>
+
+</body>
+</html>
+
+{% endblock %}

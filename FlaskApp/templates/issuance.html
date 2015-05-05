@@ -1,0 +1,20 @@
+{% extends "template.html" %}
+{% block body %}
+    <body>
+
+    	<div class="container">
+    		<h1>Issuance</h1>
+    		<br>
+        	<p>Issuing Private Key: {{issuing_private_key}}</p>
+        	<p>Name: {{name}}</p>
+        	<p>Minting Fee: {{minting_fee}}</p>
+        	<p>Issuing Public Address: {{issuing_public_address}}</p>
+            <img src={{qrcode}} alt="color qrcode">
+            <img src={{image}} alt="color qrcode">
+
+    	</div>
+
+
+    </body>
+
+{% endblock %}

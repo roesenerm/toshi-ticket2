@@ -1,0 +1,15 @@
+{% extends "template.html" %}
+{% block body %}
+  <body>
+    <div class="container">
+      <h1>Please login</h1>
+      {% if error %}
+        <p class="error"><strong>Error:</strong> {{ error }}
+      {% endif %}
+      {%for message in get_flashed_messages()%}
+          {{ message }}
+      {% endfor %}
+      <a href="{{auth_url}}">Login</a>
+    </div>
+  </body>
+{% endblock %}
