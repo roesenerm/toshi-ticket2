@@ -27,7 +27,7 @@ posts = handle.posts
 
 CLIENT_ID = '40335456568a0fd8a01e934b18b83df11a58b0cf1bb7adfaa4dfeb57e247652e'
 CLIENT_SECRET = '591828d95d35aa6179316409b9e016f3a1dd78af14bfe142efff2a3aa9bd40ef'
-YOUR_CALLBACK_URL = 'http://www.toshiticket.com/consumer_auth'
+YOUR_CALLBACK_URL = 'https://www.toshiticket.com/consumer_auth'
 
 def login_required(f):
 	@wraps(f)
