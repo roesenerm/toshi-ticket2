@@ -27,7 +27,7 @@ posts = handle.posts
 
 CLIENT_ID = '40335456568a0fd8a01e934b18b83df11a58b0cf1bb7adfaa4dfeb57e247652e'
 CLIENT_SECRET = '591828d95d35aa6179316409b9e016f3a1dd78af14bfe142efff2a3aa9bd40ef'
-YOUR_CALLBACK_URL = 'https://www.toshiticket.com/consumer_auth'
+YOUR_CALLBACK_URL = 'http://www.toshiticket.com/consumer_auth'
 
 def login_required(f):
 	@wraps(f)
@@ -272,7 +272,7 @@ def artist():
 
 def statements(public_address):
 
-	r = requests.get('http://assets.assembly.com/v1/messages/'+public_address)
+	r = requests.get('https://assets.assembly.com/v1/messages/'+public_address)
 
 	print r.status_code
 
@@ -310,8 +310,8 @@ def sendBitcoin(issuing_public_address, minting_fee, token):
 
 
 if __name__ == '__main__':
-	#port = int(os.environ.get('PORT', 5000))
-	#app.run(host='0.0.0.0', port=port)
-	app.run()
+	port = int(os.environ.get('PORT', 5000))
+	app.run(host='0.0.0.0', port=port)
+	#app.run()
 
 
