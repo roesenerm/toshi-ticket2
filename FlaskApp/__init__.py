@@ -232,7 +232,7 @@ def issueCoin():
 
 		return render_template("issuance.html", issuing_private_key=issuing_private_key, name=name, minting_fee=minting_fee, issuing_public_address=issuing_public_address)
 
-	return render_template("issuecoin.html")
+	return render_template("issueCoin.html")
 
 
 # Check coin balance
