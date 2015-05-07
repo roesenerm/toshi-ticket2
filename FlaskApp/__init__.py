@@ -84,7 +84,7 @@ def recieve_token():
 
 		t = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 		print t
-		db.tokens.insert({'created_at':t,'token': access_token})
+		handle.tokens.insert({'created_at':t,'token': access_token})
 
 		lastToken = tokens.find().sort([("created_at", pymongo.DESCENDING)])
 		print lastToken.next()['token']
@@ -103,7 +103,7 @@ def home():
 #@login_required
 def explore():
 
-	posts = db.posts.find()
+	posts = handle.posts.find()
 
 	for post in posts:
 		try:
@@ -113,12 +113,12 @@ def explore():
 			ticket_price = statements(issuing_address)
 			print ticket_price
 			print post
-			db.posts.find_and_modify(query={'issuing_public_address':issuing_address}, update={"$set": {'ticket_price': ticket_price}}, upsert=False, full_response= True)
+			handle.posts.find_and_modify(query={'issuing_public_address':issuing_address}, update={"$set": {'ticket_price': ticket_price}}, upsert=False, full_response= True)
 		except:
 			print "pass"
 			pass
 
-	posts = db.posts.find()
+	posts = handle.posts.find()
 
 
 	lastToken = tokens.find().sort([("created_at", pymongo.DESCENDING)])
@@ -139,7 +139,7 @@ def explore():
 
 		issuing_public_address = str(request.form['issuing_public_address'])
 
-		from_private_key = db.posts.find({"issuing_public_address":issuing_public_address})
+		from_private_key = handle.posts.find({"issuing_public_address":issuing_public_address})
 
 		from_private_key = from_private_key.next()['issuing_private_key']
 
@@ -266,7 +266,7 @@ def checkCoin():
 @login_required
 def artist():
 
-	posts = db.posts.find()
+	posts = handle.posts.find()
 
 	return render_template('artist.html', posts=posts)
 
