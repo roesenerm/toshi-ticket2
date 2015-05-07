@@ -63,6 +63,8 @@ def recieve_token():
 
 	url = 'https://www.coinbase.com/oauth/token?grant_type=authorization_code&code='+oauth_code+'&redirect_uri='+YOUR_CALLBACK_URL+'&client_id='+CLIENT_ID+'&client_secret='+CLIENT_SECRET
 
+	print url
+
 	r = requests.post(url)
 
 	data = r.json()
@@ -309,6 +311,6 @@ def sendBitcoin(issuing_public_address, minting_fee, token):
 
 if __name__ == '__main__':
 	port = int(os.environ.get('PORT', 5000))
-	app.run(host='0.0.0.0', port=port, debug=True)
+	app.run(host='0.0.0.0', port=port)
 
 
