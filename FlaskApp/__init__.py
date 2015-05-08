@@ -96,7 +96,7 @@ def recieve_token():
 def home():
 	auth_url = 'https://www.coinbase.com/oauth/authorize?response_type=code&client_id='+ CLIENT_ID +'&redirect_uri='+ YOUR_CALLBACK_URL
 
-	return render_template("cover.html", auth_url=auth_url)
+	return render_template("cover2.html", auth_url=auth_url)
 
 
 @app.route('/explore', methods=['GET', 'POST'])
