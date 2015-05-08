@@ -228,7 +228,7 @@ def issueCoin():
 
 		sendBitcoin(issuing_public_address, minting_fee, token)
 
-		posts.insert({'issuing_public_address': issuing_public_address, 'issuing_private_key': issuing_private_key, 'name': name})
+		posts.insert({'issuing_public_address': issuing_public_address, 'issuing_private_key': issuing_private_key, 'name': name, 'image': image})
 
 		return render_template("issuance.html", issuing_private_key=issuing_private_key, name=name, minting_fee=minting_fee, issuing_public_address=issuing_public_address, image=image)
 
