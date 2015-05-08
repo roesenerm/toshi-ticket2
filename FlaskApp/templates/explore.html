@@ -15,7 +15,7 @@
               </div>
               <div class="panel-body">
                 <p>{{ post.issuing_public_address }}</p>
-                <img src= {{ post.image }} alt="color qrcode"><br>
+                <img src= {{ post.image }} alt="color qrcode" height="100" width="100"><br>
                 <form class="form-horizontal" action="" method="post">
                     <p><input type="hidden" placeholder="From Public Address" name="from_public_address" value={{ post.issuing_public_address }}></p>
                     <p><input type="number" MIN="0" MAX="10" STEP="1" VALUE="1" SIZE="1" placeholder="Number of Tickets" name="transfer_amount" value="{{request.form.transfer_amount}}"></p>
