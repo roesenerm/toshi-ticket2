@@ -2803,17 +2803,17 @@ fieldset[disabled] .btn {
   opacity: .65;
 }
 .btn-custom {
-    border: 1px solid #219ab3;
-    color: #219ab3;
+    border: 1px solid #f00a11;
+    color: #f00a11;
     background-color: transparent;
 }
 
 .btn-custom:hover,
 .btn-custom:focus {
-    border: 1px solid #219ab3;
+    border: 1px solid #f00a11;
     outline: 0;
     color: #000;
-    background-color: #219ab3;
+    background-color: #f00a11;
 }
 .btn-default {
   color: #333;
