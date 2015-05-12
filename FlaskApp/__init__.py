@@ -206,7 +206,7 @@ def issueCoin():
 		coin_name = request.form['coin_name']
 		email = request.form['email']
 
-		meta_data = str(description) + "++" + str(image) + "++" + str(ticket_price)
+		meta_data = str(description) + "++" + str(ticket_price)
 
 		payload = {'issued_amount': issued_amount, 'description': meta_data, 'coin_name': coin_name, 'email': email}
 
@@ -284,9 +284,7 @@ def statements(public_address):
 
 	ticket_type = description.split("++")[0]
 
-	image = description.split("++")[1]
-
-	ticket_price = description.split("++")[2]
+	ticket_price = description.split("++")[1]
 
 	return ticket_price
 
