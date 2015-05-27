@@ -109,11 +109,14 @@ def explore():
 		try:
 			#print "yes"
 			#print post['issuing_public_address']
+			print post
+			'''
 			issuing_address = post['issuing_public_address']
 			ticket_price = statements(issuing_address)
 			print ticket_price
 			print post
 			handle.posts.find_and_modify(query={'issuing_public_address':issuing_address}, update={"$set": {'ticket_price': ticket_price}}, upsert=False, full_response= True)
+			'''
 		except:
 			print "pass"
 			pass
