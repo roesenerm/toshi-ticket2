@@ -167,7 +167,7 @@ def explore():
 
 		tx_hex = response['txHex']
 
-		#Get Permission To Purchase Asset/ Asset Owner must sign transaction
+		#Get Permission To Purchase Asset/ Asset Owner must sign transaction with Private key
 
 		private_key = ""
 
@@ -330,7 +330,7 @@ def check_ticket():
 
 		asset_id = request.form['asset_id']
 		tx_id = request.form['tx_id']
-		utxo = txid + ":1"
+		utxo = tx_id + ":1"
 
 		r = requests.get('http://testnet.api.coloredcoins.org:80/v2/assetmetadata/' + asset_id + '/' + utxo)
 
@@ -345,27 +345,37 @@ def check_ticket():
 	return render_template("check_ticket.html")
 
 
-@app.route('/<meta_data>')
+@app.route('ticket_id/<asset_id>')
 #@login_required
-def metadata(meta_data):
-	print (meta_data)
+def metadata(asset_id):
 
-	if posts.find_one({'resource_url':meta_data}) == None:
+	if posts.find_one({'asset_id':asset_id}) == None:
 
-		return "no"
+		error = "No Asset ID Found"
+
+		return render_template("ticket.html", asset_id=asset_id, name=name, description=description, error=error)
 
 	else:
 
-		data = posts.find_one({'resource_url':meta_data})
+		data = posts.find_one({'asset_id':asset_id})
 
-		data = {'source_addresses': [False],
-				'name':data['name'],
-				'ticket_price': data['ticket_price'],
-				'description': data['description'],
-				'description': data['image'],
-				'issued_amount': data['issued_amount']}
+		asset_id = asset_id
 
-		return jsonify(data)
+		tx_id = data['tx_id']
+
+		utxo = tx_id + ":1"
+
+		r = requests.get('http://testnet.api.coloredcoins.org:80/v2/assetmetadata/' + asset_id + '/' + utxo)
+
+		response = r.json()
+
+		asset_id = response['assetId']
+		name = response['metadataOfIssuence']['name']
+		description = response['metadataOfIssuence']['description']
+
+		return render_template("ticket.html", asset_id=asset_id, name=name, description=description, error=error)
+
+
 
 
 if __name__ == '__main__':
