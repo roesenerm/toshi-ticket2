@@ -73,10 +73,11 @@ def signup():
 		username = request.form['username']
 		account_password = request.form['account_password']
 		confirm_password = request.form['confirm_password']
+		my_address = request.form['my_address']
 
 		if account_password == confirm_password:
 
-			handle.accounts.insert({'username':username, 'acccount_password':account_password})
+			handle.accounts.insert({'username':username, 'acccount_password':account_password, 'my_address':my_address})
 
 			session['logged_in'] = True
 			session['username'] = username
@@ -136,7 +137,7 @@ def home():
 
 
 @app.route('/explore', methods=['GET', 'POST'])
-@login_required
+#@login_required
 def explore():
 
 	username = session['username']
@@ -277,7 +278,7 @@ def issue():
 			error = "Error issuing ticket"
 			return render_template("issue_coin.html", error=error)
 
-	return render_template("issue_coin.html", error=error)
+	return render_template("issue.html", error=error)
 
 
 def sign_tx(tx_hex, tx_key):
