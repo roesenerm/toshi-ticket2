@@ -175,9 +175,9 @@ def explore():
 
 		if str(r) == '<Response [200]>':
 
-			raw_tx = sign_tx(tx_hex, tx_key)
+			signed_tx = sign_tx(tx_hex, tx_key)
 
-			tx_id = broadcast_tx(raw_tx)
+			tx_id = broadcast_tx(signed_tx)
 
 			return render_template("transfer_coin.html", tx_id=tx_id)
 
@@ -252,7 +252,7 @@ def issue():
 		    }
 		}
 
-		r = requests.post('http://testnet.api.coloredcoins.org:80/v2/issue', data=json.dumps(payload), headers={'Content-Type':'application/json'})
+		r = requests.post('http://testnet.api.coloredcoins.org:80/v2/issue', data=payload, headers={'Content-Type':'application/json'})
 
 		response = r.json()
 
@@ -266,9 +266,9 @@ def issue():
 
 		if str(r) == '<Response [200]>':
 
-			raw_tx = sign_tx(tx_hex, tx_key)
+			signed_tx = sign_tx(tx_hex, tx_key)
 
-			tx_id = broadcast_tx(raw_tx)
+			tx_id = broadcast_tx(signed_tx)
 
 			posts.insert({'bitcoin_address':my_address, 'asset_address':asset_id, 'tx_id':tx_id})
 
@@ -287,11 +287,9 @@ def sign_tx(tx_hex, tx_key):
 
 	return raw_tx
 
-def broadcast_tx(raw_tx):
+def broadcast_tx(signed_tx):
 
-	headers = {'Content-Type':'application/json'}
-
-	payload = str(raw_tx)
+	payload = str(signed_tx)
 
 	r = requests.post('http://testnet.api.coloredcoins.org:80/v2/broadcast', data=json.dumps(payload), headers={'Content-Type':'application/json'})
 
