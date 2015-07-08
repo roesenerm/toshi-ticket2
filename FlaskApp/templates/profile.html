@@ -6,19 +6,16 @@
     <h1>My Tickets</h1>
     <br>
       <div class = "row">
-        {% for asset in my_assets %}
-            <div class = "col-md-6">
-                <div class="list-group">
-                  <a href="#" class="list-group-item"><h3>Issuing Address: {{ asset.issuing_address }}</h3></a>
-                  <a href="#" class="list-group-item"><h3>Color Name: {{ asset.color_name }}</h3></a>
-                  <a href="#" class="list-group-item"><h3>Color Address: {{ asset.color_address }}<h3></a>
-                  <a href="#" class="list-group-item"><h3>Number of Tickets: {{ asset.quantity }}</h3></a>
-                </div>
-              {% if error %}
-              <p class="error"><strong>Error:</strong> {{ error }}</p>
-              {% endif %}
-            </div>
-        {% endfor %}
+        <h3>My Address: {{ my_address }}</h3>
+        {% for tx in utxos %}
+          <h3>My Ticket ID: {{tx.assets.assetId}}</h3>
+          <h3>Tickets I Own: {{tx.assets.amount}}</h3>
+          <br>
+          {% endfor %}
+          <br>
+          {% if error %}
+            <p class="error"><strong>Error:</strong> {{ error }}</p>
+        {% endif %}
       </div>
     </div>
   </center>

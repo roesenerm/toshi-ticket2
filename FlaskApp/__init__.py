@@ -4,15 +4,16 @@ from pymongo import MongoClient
 from functools import *
 import json
 import requests
-from urllib2 import Request, urlopen
 from time import gmtime, strftime
 import os
+from pyshorteners.shorteners import Shortener
+import string
+import random
+from bitcoin import *
 
 def connect():
-	connection = MongoClient('ds031872.mongolab.com', 31872)
-	#print connection
-	handle = connection["dbzero"]
-	#print handle
+	connection = MongoClient('ds031792.mongolab.com', 31792)
+	handle = connection["dbone"]
 	handle.authenticate('matthewroesener','namoku8807')
 	return handle
 
@@ -23,11 +24,12 @@ handle = connect()
 
 tokens = handle.tokens
 posts = handle.posts
+accounts = handle.accounts
 
 
 CLIENT_ID = '40335456568a0fd8a01e934b18b83df11a58b0cf1bb7adfaa4dfeb57e247652e'
 CLIENT_SECRET = '591828d95d35aa6179316409b9e016f3a1dd78af14bfe142efff2a3aa9bd40ef'
-YOUR_CALLBACK_URL = 'http://www.toshiticket.com/consumer_auth'
+YOUR_CALLBACK_URL = 'http://localhost:5000/consumer_auth'
 
 def login_required(f):
 	@wraps(f)
@@ -42,17 +44,56 @@ def login_required(f):
 #Login Page
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-	error = None
 	auth_url = 'https://www.coinbase.com/oauth/authorize?response_type=code&client_id='+ CLIENT_ID +'&redirect_uri='+ YOUR_CALLBACK_URL
 
+	error = None
+
+	if request.method == 'POST':
+		username = request.form['username']
+		account_password = request.form['account_password']
+
+		if accounts.find_one({'username':username}) == None and accounts.find_one({'account_password':account_password}) == None:
+
+			error = 'Invalid Credentials. Please try again.'
+
+		else:
+			session['logged_in'] = True
+			session['username'] = username
+
+			return redirect(url_for('explore'))
+
 	return render_template('login.html', error=error, auth_url=auth_url)
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+
+	error = None
+
+	if request.method == 'POST':
+		username = request.form['username']
+		account_password = request.form['account_password']
+		confirm_password = request.form['confirm_password']
+
+		if account_password == confirm_password:
+
+			handle.accounts.insert({'username':username, 'acccount_password':account_password})
+
+			session['logged_in'] = True
+			session['username'] = username
+
+		return redirect(url_for('explore'))
+
+	return render_template('signup.html', error=error)
 
 #Logout
 @app.route('/logout')
 @login_required
 def logout():
+
 	session.pop('logged_in', None)
+
 	flash('You were just logged out!')
+
 	return redirect(url_for('login'))
 
 
@@ -63,31 +104,26 @@ def recieve_token():
 
 	url = 'https://www.coinbase.com/oauth/token?grant_type=authorization_code&code='+oauth_code+'&redirect_uri='+YOUR_CALLBACK_URL+'&client_id='+CLIENT_ID+'&client_secret='+CLIENT_SECRET
 
-	print url
-
 	r = requests.post(url)
 
 	data = r.json()
 
 	access_token = data['access_token']
 
-	print access_token
-
 	refresh_token = data['refresh_token']
 
 	if access_token == None:
-		print "False"
-		return redirect(url_for('/'))
+
+		return redirect(url_for('home'))
+
 	else:
-		print "True"
 		session['logged_in'] = True
 
 		t = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-		print t
+
 		handle.tokens.insert({'created_at':t,'token': access_token})
 
 		lastToken = tokens.find().sort([("created_at", pymongo.DESCENDING)])
-		print lastToken.next()['token']
 
 		return redirect(url_for('explore'))
 
@@ -96,220 +132,246 @@ def recieve_token():
 def home():
 	auth_url = 'https://www.coinbase.com/oauth/authorize?response_type=code&client_id='+ CLIENT_ID +'&redirect_uri='+ YOUR_CALLBACK_URL
 
-	return render_template("cover2.html", auth_url=auth_url)
+	return render_template("cover.html", auth_url=auth_url)
 
 
 @app.route('/explore', methods=['GET', 'POST'])
-#@login_required
+@login_required
 def explore():
 
-	posts = handle.posts.find()
+	username = session['username']
 
-	for post in posts:
-		try:
-			#print "yes"
-			#print post['issuing_public_address']
-			issuing_address = post['issuing_public_address']
-			ticket_price = statements(issuing_address)
-			print ticket_price
-			print post
-			handle.posts.find_and_modify(query={'issuing_public_address':issuing_address}, update={"$set": {'ticket_price': ticket_price}}, upsert=False, full_response= True)
-		except:
-			print "pass"
-			pass
+	session_user = accounts.find_one({'username':username})
+
+	my_address = session_user['my_address']
 
 	posts = handle.posts.find()
-
-
-	lastToken = tokens.find().sort([("created_at", pymongo.DESCENDING)])
-	token = lastToken.next()['token']
 
 	error = None
 	if request.method == 'POST':
 
-		uri = 'https://api.coinbase.com/v1/addresses?access_token=' + token
+		from_address = str(request.form['bitcoin_address'])
 
-		j = requests.get(uri)
+		asset_id = str(request.form['asset_id'])
 
-		addresses = j.json()
-
-		to_public_address = str(addresses['addresses'][-1]['address']['address'])
-
-		from_public_address = str(request.form['from_public_address'])
-
-		issuing_public_address = str(request.form['issuing_public_address'])
-
-		from_private_key = handle.posts.find({"issuing_public_address":issuing_public_address})
-
-		from_private_key = from_private_key.next()['issuing_private_key']
+		ticket_price = str(request.form['ticket_price'])
 
 		transfer_amount = int(request.form['transfer_amount'])
 
-		fee_each = 0.00005
+		payload = {'fee': 1000, 'from': from_address, 'to':[{'address':my_address,'amount': transfer_amount, 'asset_id' : asset_id}]}
 
-		headers = {'Content-Type':'application/json'}
-		payload = {'from_public_address': from_public_address, 'from_private_key': from_private_key, 'transfer_amount': transfer_amount, 'to_public_address': to_public_address, 'issuing_address': issuing_public_address, 'fee_each': fee_each}
+		r = requests.post('http://testnet.api.coloredcoins.org:80/v2/sendasset', data=json.dumps(payload), headers={'Content-Type':'application/json'})
 
-		print "json"
-		print json.dumps(payload)
+		response = r.json()
 
-		r = requests.post('https://assets.assembly.com/v1/transactions/transfer', data=json.dumps(payload), headers=headers)
+		tx_hex = response['txHex']
 
-		print r.status_code
+		#Get Permission To Purchase Asset/ Asset Owner must sign transaction
 
+		private_key = ""
 
-		return jsonify(r.json())
+		tx_key = private_key
+
+		if str(r) == '<Response [200]>':
+
+			raw_tx = sign_tx(tx_hex, tx_key)
+
+			tx_id = broadcast_tx(raw_tx)
+
+			return render_template("transfer_coin.html", tx_id=tx_id)
+
+		else:
+			error = "Error transferring coin"
+
+			return render_template("transfer_coin.html", error=error)
 
 	return render_template("explore.html", posts=posts)
 
 
 #Profile Page
 @app.route('/profile', methods=['GET', 'POST'])
-#@login_required
+@login_required
 def profile():
 
-	lastToken = tokens.find().sort([("created_at", pymongo.DESCENDING)])
-	token = lastToken.next()['token']
+	username = session['username']
 
-	uri = 'https://api.coinbase.com/v1/addresses?access_token=' + token
+	session_user = accounts.find_one({'username':username})
 
-	r = requests.get(uri)
+	my_address = session_user['my_address']
 
-	print r.status_code
-
-	addresses = r.json()
-
-	my_address = addresses['addresses'][-1]['address']['address']
-
-	print my_address
-
-	r = requests.get('https://assets.assembly.com/v1/addresses/' + my_address)
+	r = requests.get('http://testnet.api.coloredcoins.org/v2/addressinfo/' + my_address)
 
 	response = r.json()
-	my_assets = response['assets']
 
-	print my_assets
+	bitcoin_address = response['address']
 
-	return render_template("profile.html", my_address=my_address, my_assets=my_assets)
+	utxos = response['utxos']
+
+	return render_template("profile.html", bitcoin_address=bitcoin_address, utxos=utxos)
 
 # Create unique coin
-@app.route('/issuecoin', methods=['GET', 'POST'])
-#@login_required
-def issueCoin():
+@app.route('/issue', methods=['GET', 'POST'])
+@login_required
+def issue():
+	username = session['username']
+
+	session_user = accounts.find_one({'username':username})
+
+	my_address = session_user['my_address']
+
 	error = None
 	if request.method == 'POST':
-		headers = {'Content-Type':'application/json'}
+
 		issued_amount = request.form['issued_amount']
+
 		description = request.form['description']
+
 		image = request.form['image']
+
 		ticket_price = request.form['ticket_price']
-		coin_name = request.form['coin_name']
-		email = request.form['email']
 
-		meta_data = str(description) + "++" + str(ticket_price)
+		name = request.form['coin_name']
 
-		payload = {'issued_amount': issued_amount, 'description': meta_data, 'coin_name': coin_name, 'email': email}
+		payload = {
+		    "issueAddress": my_address,
+		    "amount": issued_amount,
+		    "divisibility": 0,
+		    "fee": 1000,
+		    "metadata": {
+		        "userData": {
+		        	"meta": [
+		        		{"ID": 1},
+		            	{"Name": name},
+		            	{"Description": description},
+		            	{"Price": ticket_price},
+		            	{"Image": image},
+		            	{"Type": "Ticket"}
+		        	]
+		        }
+		    }
+		}
 
-		print payload
-
-		r = requests.post('https://assets.assembly.com/v1/colors/prepare', data=json.dumps(payload), headers=headers)
-
-		print r.status_code
-
-		issuance = r.json()
-
-		issuing_private_key = issuance['issuing_private_key']
-		name = issuance['name']
-		minting_fee = 0.002
-		issuing_public_address = issuance['issuing_public_address']
-
-		lastToken = tokens.find().sort([("created_at", pymongo.DESCENDING)])
-		token = lastToken.next()['token']
-
-		sendBitcoin(issuing_public_address, minting_fee, token)
-
-		posts.insert({'issuing_public_address': issuing_public_address, 'issuing_private_key': issuing_private_key, 'name': name, 'image': image})
-
-		return render_template("issuance.html", issuing_private_key=issuing_private_key, name=name, minting_fee=minting_fee, issuing_public_address=issuing_public_address, image=image)
-
-	return render_template("issueCoin.html")
-
-
-# Check coin balance
-@app.route('/checkcoin', methods=['GET', 'POST'])
-#@login_required
-def checkCoin():
-	error = None
-	if request.method == 'POST':
-		headers = {'Content-Type':'application/json'}
-		public_address = request.form['from_public_address']
-
-		print public_address
-
-		r = requests.get('https://assets.assembly.com/v1/addresses/' + public_address)
+		r = requests.post('http://testnet.api.coloredcoins.org:80/v2/issue', data=json.dumps(payload), headers={'Content-Type':'application/json'})
 
 		response = r.json()
 
-		print response
-		assets = response['assets']
+		print (response)
 
-		print assets
+		tx_hex = response['txHex']
 
-		#qrcode = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + color_address
+		asset_id = response['assetId']
 
-		return render_template("balance.html", assets=assets)
+		tx_key = request.form['private_key']
 
+		if str(r) == '<Response [200]>':
 
-	return render_template("checkCoin.html")
+			raw_tx = sign_tx(tx_hex, tx_key)
 
-@app.route('/artist')
-@login_required
-def artist():
+			tx_id = broadcast_tx(raw_tx)
 
-	posts = handle.posts.find()
+			posts.insert({'bitcoin_address':my_address, 'asset_address':asset_id, 'tx_id':tx_id})
 
-	return render_template('artist.html', posts=posts)
+			return render_template("issuance.html", name=name, image=image, ticket_price=ticket_price, description=description, issued_amount=issued_amount)
 
-def statements(public_address):
+		else:
+			error = "Error issuing ticket"
+			return render_template("issue_coin.html", error=error)
 
-	r = requests.get('https://assets.assembly.com/v1/messages/'+public_address)
-
-	print r.status_code
-
-	json = r.json()
-
-	statements = json['statements'].split(",")
-
-	description = statements[1].split(":")[1]
-
-	ticket_type = description.split("++")[0]
-
-	ticket_price = description.split("++")[1]
-
-	return ticket_price
+	return render_template("issue_coin.html", error=error)
 
 
-def sendBitcoin(issuing_public_address, minting_fee, token):
+def sign_tx(tx_hex, tx_key):
 
+	raw_tx = sign(tx_hex, 0, tx_key)
+
+	return raw_tx
+
+def broadcast_tx(raw_tx):
+
+	headers = {'Content-Type':'application/json'}
+
+	payload = str(raw_tx)
+
+	r = requests.post('http://testnet.api.coloredcoins.org:80/v2/broadcast', data=json.dumps(payload), headers={'Content-Type':'application/json'})
+
+	response = r.json()
+
+	tx_id = response['txid']
+
+	return tx_id
+
+
+# Check coin balance
+@app.route('/check_ticket_issuer', methods=['GET', 'POST'])
+#@login_required
+def check_ticket_issuer():
+	error = None
+	if request.method == 'POST':
+
+		public_address = request.form['from_public_address']
+
+		r = requests.get('http://testnet.api.coloredcoins.org/v2/addressinfo/' + public_address)
+
+		response = r.json()
+
+		bitcoin_address = response['address']
+
+		utxos = response['utxos']
+
+		return render_template("ticket_issuer.html", bitcoin_address=bitcoin_address, utxos=utxos)
+
+	return render_template("check_ticket_issuer.html")
+
+@app.route('/check_ticket', methods=['GET', 'POST'])
+#@login_required
+def check_ticket():
 	error = None
 	if request.method == 'POST':
 		headers = {'Content-Type':'application/json'}
-		payload = {'transaction': {'to': issuing_public_address,
-			'amount': minting_fee,
-			'notes': 'Official ticket issuance with minting fee',
-			'user_fee': 0.0002
-		}}
 
-	r = requests.post('https://api.coinbase.com/v1/transactions/send_money?access_token='+ token, data=json.dumps(payload), headers=headers)
+		asset_id = request.form['asset_id']
+		tx_id = request.form['tx_id']
+		utxo = txid + ":1"
 
-	print r.json()
+		r = requests.get('http://testnet.api.coloredcoins.org:80/v2/assetmetadata/' + asset_id + '/' + utxo)
 
-	print "sent"
+		response = r.json()
+
+		asset_id = response['assetId']
+		name = response['metadataOfIssuence']['name']
+		description = response['metadataOfIssuence']['description']
+
+		return render_template("ticket.html", asset_id=asset_id, name=name, description=description, error=error)
+
+	return render_template("check_ticket.html")
+
+
+@app.route('/<meta_data>')
+#@login_required
+def metadata(meta_data):
+	print (meta_data)
+
+	if posts.find_one({'resource_url':meta_data}) == None:
+
+		return "no"
+
+	else:
+
+		data = posts.find_one({'resource_url':meta_data})
+
+		data = {'source_addresses': [False],
+				'name':data['name'],
+				'ticket_price': data['ticket_price'],
+				'description': data['description'],
+				'description': data['image'],
+				'issued_amount': data['issued_amount']}
+
+		return jsonify(data)
 
 
 if __name__ == '__main__':
-	port = int(os.environ.get('PORT', 5000))
-	app.run(host='0.0.0.0', port=port)
-	#app.run()
+	#port = int(os.environ.get('PORT', 5000))
+	#app.run(host='0.0.0.0', port=port)
+	app.run(debug=True)
 
 

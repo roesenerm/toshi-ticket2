@@ -1,0 +1,18 @@
+{% extends "template.html" %}
+{% block body %}
+<body>
+    <center>
+    <div class = "container">
+      <h1>Check Ticket Details</h1>
+      <h3>Asset ID: {{ asset_id }}</h3>
+      <h3>Name: {{ name }}</h3>
+      <h3>Description: {{ description }}</h3>
+      <br>
+      {% if error %}
+        <p class="error"><strong>Error:</strong> {{ error }}</p>
+      {% endif %}
+    </div>
+    </center>
+</body>
+
+{% endblock %}

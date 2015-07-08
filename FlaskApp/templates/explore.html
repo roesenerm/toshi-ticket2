@@ -4,23 +4,26 @@
 <body>
 	<center>
     <div class = "container">
-    <h1>Artists</h1>
+    <h1>Artist Events</h1>
     <br>
       <div class = "row">
       	{% for post in posts %}
       		<div class = "col-md-4">
             <div class="panel panel-default">
-              <div class="panel-heading">
-                <h3 class="panel-title"><h3>{{ post.name }}<h3></h3>
-              </div>
               <div class="panel-body">
-                <p>{{ post.issuing_public_address }}</p>
-                <img src= {{ post.image }} alt="color qrcode" height="200" width="200"><br>
+                <h3>{{ post.name }}</h3>
+                <br>
+                <img src= {{ post.image }} alt="color qrcode" height="200" width="200">
+                <br>
+                <br>
+                <p>Ticket Owner: {{ post.bitcoin_address }}</p>
+                <p>Asset ID: {{ post.asset_id }}</p>
                 <form class="form-horizontal" action="" method="post">
-                    <p><input type="hidden" placeholder="From Public Address" name="from_public_address" value={{ post.issuing_public_address }}></p>
+                    <p><input type="hidden" placeholder="Bitcoin Address" name="bitcoin_address" value={{ post.bitcoin_address }}></p>
+                    <p><input type="hidden" placeholder="Asset ID" name="asset_id" value={{ post.asset_id }}></p>
+                    <p><input type="hidden" placeholder="Ticket Price" name="ticket_price" value={{ post.ticket_price }}></p>
+                    <p>${{ post.ticket_price }}</p>
                     <p><input type="number" MIN="0" MAX="10" STEP="1" VALUE="1" SIZE="1" placeholder="Number of Tickets" name="transfer_amount" value="{{request.form.transfer_amount}}"></p>
-                    <p><input type="hidden" placeholder="Issuing Address" name="issuing_public_address" value={{ post.issuing_public_address }}></p>
-                    <p>{{ post.ticket_price }}</p>
                     <p><input class="btn btn-custom" type="submit" value="Buy"></p>
                 </form>
               </div>
