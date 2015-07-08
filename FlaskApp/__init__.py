@@ -141,26 +141,7 @@ def explore():
 
 	username = session['username']
 
-<<<<<<< HEAD
 	session_user = accounts.find_one({'username':username})
-=======
-	for post in posts:
-		try:
-			#print "yes"
-			#print post['issuing_public_address']
-			print post
-			issuing_address = post['issuing_public_address']
-			ticket_price = statements(issuing_address)
-			print ticket_price
-			print post
-			handle.posts.find_and_modify(query={'issuing_public_address':issuing_address}, update={"$set": {'ticket_price': ticket_price}}, upsert=False, full_response= True)
-
-		except:
-			print "pass"
-			pass
-
-	posts = handle.posts.find()
->>>>>>> fbffba4d3c15727d44944aee7ad38182ea76e695
 
 	my_address = session_user['my_address']
 
