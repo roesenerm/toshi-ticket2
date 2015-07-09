@@ -149,6 +149,7 @@ def explore():
 	posts = handle.posts.find()
 
 	error = None
+
 	if request.method == 'POST':
 
 		from_address = str(request.form['bitcoin_address'])
@@ -188,6 +189,48 @@ def explore():
 
 	return render_template("explore.html", posts=posts)
 
+@app.route('/transfer', methods=['GET', 'POST'])
+#@login_required
+def transfer():
+
+	error = None
+
+	if request.method == 'POST':
+
+		from_address = str(request.form['bitcoin_address'])
+
+		asset_id = str(request.form['asset_id'])
+
+		ticket_price = str(request.form['ticket_price'])
+
+		transfer_amount = int(request.form['transfer_amount'])
+
+		private_key = str(request.form['private_key'])
+
+		payload = {'fee': 1000, 'from': from_address, 'to':[{'address':my_address,'amount': transfer_amount, 'asset_id' : asset_id}]}
+
+		r = requests.post('http://testnet.api.coloredcoins.org:80/v2/sendasset', data=json.dumps(payload), headers={'Content-Type':'application/json'})
+
+		response = r.json()
+
+		tx_hex = response['txHex']
+
+		tx_key = private_key
+
+		if str(r) == '<Response [200]>':
+
+			signed_tx = sign_tx(tx_hex, tx_key)
+
+			tx_id = broadcast_tx(signed_tx)
+
+			return render_template("transfer_asset.html", tx_id=tx_id)
+
+		else:
+			error = "Error transferring coin"
+
+			return render_template("transfer_asset.html", error=error)
+
+	return render_template("transfer.html", posts=posts)
 
 #Profile Page
 @app.route('/profile', methods=['GET', 'POST'])
