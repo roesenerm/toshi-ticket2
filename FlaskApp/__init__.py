@@ -345,7 +345,7 @@ def check_ticket():
 	return render_template("check_ticket.html")
 
 
-@app.route('ticket_id/<asset_id>')
+@app.route('/ticket_id/<asset_id>')
 #@login_required
 def metadata(asset_id):
 
