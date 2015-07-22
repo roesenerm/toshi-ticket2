@@ -8,15 +8,11 @@
         <br>
         <input type="text" class="form-control" name="username" value="{{request.form.username}}" placeholder="Email address" required autofocus>
         <br>
-        <input type="password" class="form-control" name="account_password" value="{{request.form.account_password}}" placeholder="Password" required>
-        <div class="checkbox">
-          <label>
-            <input type="checkbox" value="remember-me"> Remember Me
-          </label>
-        </div>
+        <input type="password" class="form-control" name="brainwallet_password" value="{{request.form.brainwallet_password}}" placeholder="Brainwallet Password" required>
+        <br>
         <button class="btn btn-lg btn-custom btn-block" type="submit">Sign In</button>
         <br>
-        <a href="{{auth_url}}" class="btn btn-lg btn-custom btn-block">Login With Coinbase</a>
+        <!---<a href="{{auth_url}}" class="btn btn-lg btn-custom btn-block">Login With Coinbase</a>-->
         <br>
         <a href="/signup">Sign Up Here</a>
         <br>

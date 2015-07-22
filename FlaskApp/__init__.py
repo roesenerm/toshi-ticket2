@@ -6,15 +6,16 @@ import json
 import requests
 from time import gmtime, strftime
 import os
-from pyshorteners.shorteners import Shortener
 import string
 import random
 from bitcoin import *
+from passlib.hash import sha256_crypt
+import pdb
 
 def connect():
-	connection = MongoClient('ds031792.mongolab.com', 31792)
-	handle = connection["dbone"]
-	handle.authenticate('matthewroesener','namoku8807')
+	connection = MongoClient('ds047772.mongolab.com', 47772)
+	handle = connection["dbtwo"]
+	handle.authenticate('matthewroesener','toshihawaii')
 	return handle
 
 app = Flask(__name__)
@@ -25,6 +26,7 @@ handle = connect()
 tokens = handle.tokens
 posts = handle.posts
 accounts = handle.accounts
+unsigned_tx = handle.unsigned_tx
 
 
 CLIENT_ID = '40335456568a0fd8a01e934b18b83df11a58b0cf1bb7adfaa4dfeb57e247652e'
@@ -49,10 +51,13 @@ def login():
 	error = None
 
 	if request.method == 'POST':
-		username = request.form['username']
-		account_password = request.form['account_password']
 
-		if accounts.find_one({'username':username}) == None and accounts.find_one({'account_password':account_password}) == None:
+		username = request.form['username']
+		brainwallet_password = request.form['brainwallet_password']
+
+		'''
+
+		if accounts.find_one({'username':username}) == None:
 
 			error = 'Invalid Credentials. Please try again.'
 
@@ -61,6 +66,26 @@ def login():
 			session['username'] = username
 
 			return redirect(url_for('explore'))
+
+		'''
+
+		if accounts.find_one({'username':username}) == None:
+
+			error = 'Invalid Credentials. Please try again.'
+
+		else:
+
+			if sha256_crypt.verify(str(brainwallet_password), str(accounts.find_one({'username':username})['password'])) == False:
+
+				error = 'Invalid Credentials. Please try again.'
+
+			else:
+
+				session['logged_in'] = True
+				session['username'] = username
+
+				return redirect(url_for('explore'))
+
 
 	return render_template('login.html', error=error, auth_url=auth_url)
 
@@ -71,20 +96,48 @@ def signup():
 
 	if request.method == 'POST':
 		username = request.form['username']
-		account_password = request.form['account_password']
-		confirm_password = request.form['confirm_password']
-		my_address = request.form['my_address']
+		brainwallet_password = request.form['brainwallet_password']
+		confirm_brainwallet_password = request.form['confirm_brainwallet_password']
 
-		if account_password == confirm_password:
+		if brainwallet_password != confirm_brainwallet_password:
 
-			handle.accounts.insert({'username':username, 'acccount_password':account_password, 'my_address':my_address})
+			error = 'Invalid Password. Please try again.'
+
+		else:
+
+			priv, addr, password_on_server  = create_account(brainwallet_password)
+
+			handle.accounts.insert({'username':username, 'priv':priv, 'my_address':addr, 'password': password_on_server})
 
 			session['logged_in'] = True
 			session['username'] = username
 
 		return redirect(url_for('explore'))
 
+	'''
+
+	if account_password == confirm_password:
+
+		my_address = create_account(brainwallet_password)
+
+		handle.accounts.insert({'username':username, 'acccount_password':account_password, 'my_address':my_address})
+
+		session['logged_in'] = True
+		session['username'] = username
+
+		return redirect(url_for('explore'))
+
+	'''
+
 	return render_template('signup.html', error=error)
+
+def create_account(brainwallet_password):
+	password_on_server = sha256_crypt.encrypt(brainwallet_password)
+	priv = sha256(password_on_server)
+	pub = privtopub(priv)
+	addr = pubtoaddr(pub, 111)
+
+	return priv, addr, password_on_server
 
 #Logout
 @app.route('/logout')
@@ -133,12 +186,14 @@ def recieve_token():
 def home():
 	auth_url = 'https://www.coinbase.com/oauth/authorize?response_type=code&client_id='+ CLIENT_ID +'&redirect_uri='+ YOUR_CALLBACK_URL
 
-	return render_template("cover.html", auth_url=auth_url)
+	return render_template("cover2.html", auth_url=auth_url)
 
 
 @app.route('/explore', methods=['GET', 'POST'])
-#@login_required
+@login_required
 def explore():
+
+	error = None
 
 	username = session['username']
 
@@ -146,11 +201,47 @@ def explore():
 
 	my_address = session_user['my_address']
 
+	buyer_private_key = session_user['priv']
+
 	posts = handle.posts.find()
 
-	error = None
+	meta_data = []
+
+	for post in posts:
+		bitcoin_address = post['bitcoin_address']
+		asset_id = post['asset_id']
+		tx_id = post['tx_id']
+
+		for index in range(0,10):
+
+			utxo = tx_id + ':' + str(index)
+
+			endpoint = 'http://testnet.api.coloredcoins.org:80/v2/assetmetadata/' + asset_id + '/' + utxo
+
+			r = requests.get(endpoint)
+
+			if (r.status_code) != 200:
+				pass
+
+			else:
+
+				response = r.json()
+
+				asset_id = response['assetId']
+				name = response['metadataOfIssuence']['data']['userData']['meta'][1]['Name']
+				description = response['metadataOfIssuence']['data']['userData']['meta'][2]['Description']
+				price = response['metadataOfIssuence']['data']['userData']['meta'][3]['Price']
+				image = response['metadataOfIssuence']['data']['userData']['meta'][4]['Image']
+
+				data = {'bitcoin_address':bitcoin_address, 'asset_id':asset_id, 'name':name, 'description':description, 'price':price, 'image':image}
+
+				meta_data.append(data)
 
 	if request.method == 'POST':
+
+		error = None
+		asset_tx_id = None
+		btc_tx_id = None
 
 		from_address = str(request.form['bitcoin_address'])
 
@@ -160,64 +251,158 @@ def explore():
 
 		transfer_amount = int(request.form['transfer_amount'])
 
-		payload = {'fee': 1000, 'from': from_address, 'to':[{'address':my_address,'amount': transfer_amount, 'asset_id' : asset_id}]}
+		issuer = accounts.find_one({'my_address':from_address})
 
-		r = requests.post('http://testnet.api.coloredcoins.org:80/v2/sendasset', data=json.dumps(payload), headers={'Content-Type':'application/json'})
+		issuer_private_key = issuer['priv']
+
+		asset_tx_id, btc_tx_id, error = swap(my_address=my_address, ticket_price=ticket_price, from_address=from_address, asset_id=asset_id, transfer_amount=transfer_amount, issuer_private_key=issuer_private_key, buyer_private_key=buyer_private_key)
+
+		if asset_tx_id == True and btc_tx_id == True:
+
+			return render_template("buy.html", asset_tx_id=asset_tx_id, btc_tx_id=btc_tx_id, error=error)
+
+
+	return render_template("explore.html", posts=posts, meta_data=meta_data, error=error)
+
+
+def swap(my_address, ticket_price, from_address, asset_id, transfer_amount, issuer_private_key, buyer_private_key):
+
+	error = None
+	asset_tx_id = None
+	btc_tx_id = None
+
+	try:
+
+		price_url = "http://api.coindesk.com/v1/bpi/currentprice.json"
+		r = requests.get(price_url)
 
 		response = r.json()
 
-		tx_hex = response['txHex']
+		btc_usd_rate = response['bpi']['USD']['rate']
 
-		#Get Permission To Purchase Asset/ Asset Owner must sign transaction with Private key
+		input_amt = ticket_price
+		ticket_price_satoshis = float(input_amt) / float(btc_usd_rate) * 100000000
 
-		private_key = ""
+		ticket_price_satoshis = 1000
 
-		tx_key = private_key
+		my_address_satoshis = get_address_balance(my_address)
 
-		if str(r) == '<Response [200]>':
+		from_address_satoshis = get_address_balance(from_address)
+
+		if my_address_satoshis > ticket_price_satoshis and from_address_satoshis > 1000:
+
+			asset_tx_id, error = transfer_asset(from_address=from_address, to_address=my_address, transfer_amount=transfer_amount, asset_id=asset_id, tx_key=issuer_private_key)
+
+			btc_tx_id, error = send_btc(send_to=from_address, ticket_price_satoshis=ticket_price_satoshis, send_from=my_address, tx_key=buyer_private_key)
+
+		else:
+
+			error = "Not enough funds"
+
+	except:
+
+		error = "Not enough funds"
+
+	return asset_tx_id, btc_tx_id, error
+
+def transfer_asset(from_address, to_address, transfer_amount, asset_id, tx_key):
+
+	error = None
+	tx_id = None
+
+	payload = {'fee': 1000, 'from': from_address, 'to':[{'address':to_address,'amount': transfer_amount, 'assetId' : asset_id}]}
+
+	r = requests.post('http://testnet.api.coloredcoins.org:80/v2/sendasset', data=json.dumps(payload), headers={'Content-Type':'application/json'})
+
+	response = r.json()
+
+	if r.status_code == 200:
+
+		try:
+
+			tx_hex = response['txHex']
 
 			signed_tx = sign_tx(tx_hex, tx_key)
 
 			tx_id = broadcast_tx(signed_tx)
 
-			return render_template("transfer_coin.html", tx_id=tx_id)
+		except:
 
-		else:
-			error = "Error transferring coin"
+			error = "Error transferring asset"
 
-			return render_template("transfer_coin.html", error=error)
+	return tx_id, error
 
-	return render_template("explore.html", posts=posts)
+def send_btc(send_to, ticket_price_satoshis, send_from, tx_key):
+
+	pdb.set_trace()
+
+	error = None
+	tx_id = None
+
+	h = history(send_from)
+
+	outs = [{'value':ticket_price_satoshis, 'address':send_to}]
+
+	tx_hex = mktx(h, outs)
+
+	try:
+
+		signed_tx = sign_tx(tx_hex, tx_key)
+
+		tx_id = broadcast_tx(signed_tx)
+
+	except:
+
+		error = "Error transferring Bitcoin"
+
+	return tx_id, error
+
+
+def get_address_balance(address):
+	'''
+
+	r = requests.get("https://blockchain.info/address/"+address+"?format=json")
+
+	response = r.json()
+
+	print (response)
+
+	balance = response["final_balance"]
+
+	return balance
+
+	'''
+	return 500000000
 
 @app.route('/transfer', methods=['GET', 'POST'])
-#@login_required
+@login_required
 def transfer():
 
 	error = None
 
 	if request.method == 'POST':
 
-		from_address = str(request.form['bitcoin_address'])
+		from_address = str(request.form['from_bitcoin_address'])
 
 		asset_id = str(request.form['asset_id'])
 
-		ticket_price = str(request.form['ticket_price'])
-
 		transfer_amount = int(request.form['transfer_amount'])
+
+		to_address = str(request.form['to_bitcoin_address'])
 
 		private_key = str(request.form['private_key'])
 
-		payload = {'fee': 1000, 'from': from_address, 'to':[{'address':my_address,'amount': transfer_amount, 'asset_id' : asset_id}]}
+		payload = {'fee': 1000, 'from': from_address, 'to':[{'address':to_address,'amount': transfer_amount, 'assetId' : asset_id}]}
 
 		r = requests.post('http://testnet.api.coloredcoins.org:80/v2/sendasset', data=json.dumps(payload), headers={'Content-Type':'application/json'})
 
 		response = r.json()
 
-		tx_hex = response['txHex']
+		if r.status_code == 200:
 
-		tx_key = private_key
+			tx_hex = response['txHex']
 
-		if str(r) == '<Response [200]>':
+			tx_key = private_key
 
 			signed_tx = sign_tx(tx_hex, tx_key)
 
@@ -226,9 +411,9 @@ def transfer():
 			return render_template("transfer_asset.html", tx_id=tx_id)
 
 		else:
-			error = "Error transferring coin"
+			error = "Error transferring asset"
 
-			return render_template("transfer_asset.html", error=error)
+			return render_template("transfer_asset.html", from_address=from_address, asset_id=asset_id, transfer_amount=transfer_amount, to_address=to_address, error=error)
 
 	return render_template("transfer.html", posts=posts)
 
@@ -243,6 +428,7 @@ def profile():
 
 	my_address = session_user['my_address']
 
+
 	r = requests.get('http://testnet.api.coloredcoins.org/v2/addressinfo/' + my_address)
 
 	response = r.json()
@@ -251,7 +437,7 @@ def profile():
 
 	utxos = response['utxos']
 
-	return render_template("profile.html", bitcoin_address=bitcoin_address, utxos=utxos)
+	return render_template("profile.html", my_address=my_address, utxos=utxos)
 
 # Create unique coin
 @app.route('/issue', methods=['GET', 'POST'])
@@ -295,44 +481,50 @@ def issue():
 		    }
 		}
 
-		r = requests.post('http://testnet.api.coloredcoins.org:80/v2/issue', data=payload, headers={'Content-Type':'application/json'})
+		r = requests.post('http://testnet.api.coloredcoins.org:80/v2/issue', data=json.dumps(payload), headers={'Content-Type':'application/json'})
 
 		response = r.json()
-
-		print (response)
-
-		tx_hex = response['txHex']
-
-		asset_id = response['assetId']
 
 		tx_key = request.form['private_key']
 
 		if str(r) == '<Response [200]>':
 
+			tx_hex = response['txHex']
+
+			asset_id = response['assetId']
+
 			signed_tx = sign_tx(tx_hex, tx_key)
 
 			tx_id = broadcast_tx(signed_tx)
 
-			posts.insert({'bitcoin_address':my_address, 'asset_address':asset_id, 'tx_id':tx_id})
+			posts.insert({'bitcoin_address':my_address, 'asset_id':asset_id, 'tx_id':tx_id})
 
 			return render_template("issuance.html", name=name, image=image, ticket_price=ticket_price, description=description, issued_amount=issued_amount)
 
 		else:
-			error = "Error issuing ticket"
-			return render_template("issue_coin.html", error=error)
+			error = "Error issuing ticket, not enough funds to cover issue."
+
 
 	return render_template("issue.html", error=error)
 
 
 def sign_tx(tx_hex, tx_key):
 
-	raw_tx = sign(tx_hex, 0, tx_key)
+	tx_structure = deserialize(tx_hex)
 
-	return raw_tx
+	for i in range(0, len(tx_structure['ins'])):
+
+		tx_hex = sign(tx_hex, i, tx_key)
+
+	signed_tx = tx_hex
+
+	return signed_tx
 
 def broadcast_tx(signed_tx):
 
-	payload = str(signed_tx)
+	#pdb.set_trace()
+
+	payload = { 'txHex':signed_tx }
 
 	r = requests.post('http://testnet.api.coloredcoins.org:80/v2/broadcast', data=json.dumps(payload), headers={'Content-Type':'application/json'})
 
@@ -345,7 +537,7 @@ def broadcast_tx(signed_tx):
 
 # Check coin balance
 @app.route('/check_ticket_issuer', methods=['GET', 'POST'])
-#@login_required
+@login_required
 def check_ticket_issuer():
 	error = None
 	if request.method == 'POST':
@@ -365,7 +557,7 @@ def check_ticket_issuer():
 	return render_template("check_ticket_issuer.html")
 
 @app.route('/check_ticket', methods=['GET', 'POST'])
-#@login_required
+@login_required
 def check_ticket():
 	error = None
 	if request.method == 'POST':
@@ -417,7 +609,6 @@ def metadata(asset_id):
 		description = response['metadataOfIssuence']['description']
 
 		return render_template("ticket.html", asset_id=asset_id, name=name, description=description, error=error)
-
 
 
 

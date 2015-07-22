@@ -12,6 +12,9 @@
             <img src={{image}} alt="color qrcode">
 
     	</div>
+        {% if error %}
+            <p class="error"><strong>Error:</strong> {{ error }}</p>
+        {% endif %}
 
 
     </body>

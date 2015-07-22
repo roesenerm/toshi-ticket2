@@ -7,32 +7,32 @@
     <h1>Artist Events</h1>
     <br>
       <div class = "row">
-      	{% for post in posts %}
+      	{% for meta in meta_data %}
       		<div class = "col-md-4">
             <div class="panel panel-default">
               <div class="panel-body">
-                <h3>{{ post.name }}</h3>
+                <h3>{{ meta.name }}</h3>
                 <br>
-                <img src= {{ post.image }} alt="color qrcode" height="200" width="200">
+                <img src= {{ meta.image }} alt="color qrcode" height="200" width="200">
                 <br>
                 <br>
-                <p>Tickets Owner: {{ post.bitcoin_address }}</p>
-                <p>Ticket ID: {{ post.asset_id }}</p>
-                <a href="/ticket_id/{{post.asset_id}}">{{ post.asset_id }}</a>
+                <p>Ticket Owner: {{ meta.bitcoin_address }}</p>
+                <p>Ticket ID: {{ meta.asset_id }}</p>
+                <!-- <a href="/ticket_id/{{meta.asset_id}}">{{ meta.asset_id }}</a> -->
                 <form class="form-horizontal" action="" method="post">
-                    <p><input type="hidden" placeholder="Bitcoin Address" name="bitcoin_address" value={{ post.bitcoin_address }}></p>
-                    <p><input type="hidden" placeholder="Asset ID" name="asset_id" value={{ post.asset_id }}></p>
-                    <p><input type="hidden" placeholder="Ticket Price" name="ticket_price" value={{ post.ticket_price }}></p>
-                    <p>${{ post.ticket_price }}</p>
+                    <p><input type="hidden" placeholder="Bitcoin Address" name="bitcoin_address" value={{ meta.bitcoin_address }}></p>
+                    <p><input type="hidden" placeholder="Asset ID" name="asset_id" value={{ meta.asset_id }}></p>
+                    <p><input type="hidden" placeholder="Ticket Price" name="ticket_price" value={{ meta.price }}></p>
+                    <p>${{ meta.price }}</p>
                     <p><input type="number" MIN="0" MAX="10" STEP="1" VALUE="1" SIZE="1" placeholder="Number of Tickets" name="transfer_amount" value="{{request.form.transfer_amount}}"></p>
                     <p><input class="btn btn-custom" type="submit" value="Buy"></p>
                 </form>
               </div>
+              {% if error %}
+                <p class="error"><strong>Error:</strong> {{ error }}</p>
+              {% endif %}
             </div>
           </div>
-          {% if error %}
-            <p class="error"><strong>Error:</strong> {{ error }}</p>
-          {% endif %}
 		    {% endfor %}
       </div>
     </div>

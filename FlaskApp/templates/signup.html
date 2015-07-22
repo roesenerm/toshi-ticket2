@@ -8,11 +8,9 @@
         <br>
         <input type="text" class="form-control" name="username" value="{{request.form.username}}" placeholder="Email address" required autofocus>
         <br>
-        <input type="text" class="form-control" name="public_address" value="{{request.form.public_address}}" placeholder="Public Address" required>
-        <br>
-        <input type="password" class="form-control" name="account_password" value="{{request.form.account_password}}" placeholder="Password" required>
-        <br>
-        <input type="password" class="form-control" name="confirm_password" value="{{request.form.confirm_password}}" placeholder="Confirm Password" required>
+        <input type="password" class="form-control" name="brainwallet_password" value="{{request.form.brainwallet_password}}" placeholder="Brainwallet Password" required>
+        <span class="help-block">Only use very complex phrases. A minimum of 12 words with special characters is recommended.</span>
+        <input type="password" class="form-control" name="confirm_brainwallet_password" value="{{request.form.confirm_brainwallet_password}}" placeholder="Confirm Brainwallet Password" required>
         <br>
         <button class="btn btn-lg btn-custom btn-block" type="submit">Sign Up</button>
         <br>
