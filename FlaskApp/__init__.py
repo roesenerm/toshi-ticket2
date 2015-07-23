@@ -37,7 +37,6 @@ def login_required(f):
 	@wraps(f)
 	def wrap(*args, **kwargs):
 		if 'logged_in' in session:
-			print("Hello", f(*args, **kwargs))
 			return f(*args, **kwargs)
 		else:
 			flash('You need to login first.')
