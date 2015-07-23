@@ -37,6 +37,7 @@ def login_required(f):
 	@wraps(f)
 	def wrap(*args, **kwargs):
 		if 'logged_in' in session:
+			print("Hello", f(*args, **kwargs))
 			return f(*args, **kwargs)
 		else:
 			flash('You need to login first.')
@@ -614,7 +615,7 @@ def metadata(asset_id):
 
 if __name__ == '__main__':
 	port = int(os.environ.get('PORT', 5000))
-	app.run(host='0.0.0.0', port=port, debug=True)
+	app.run(host='0.0.0.0', port=port)
 	#app.run(debug=True)
 
 
