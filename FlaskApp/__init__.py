@@ -19,7 +19,7 @@ def connect():
 	return handle
 
 app = Flask(__name__)
-app.secret_key = "temp secret"
+#app.secret_key = "temp secret"
 
 handle = connect()
 
