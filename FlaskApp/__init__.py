@@ -510,8 +510,6 @@ def issue():
 
 def sign_tx(tx_hex, tx_key):
 
-	tx_hex = tx_hex.decode('utf-8')
-
 	tx_structure = deserialize(tx_hex)
 
 	print (tx_structure)
