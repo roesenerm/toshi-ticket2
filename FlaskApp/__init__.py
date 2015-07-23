@@ -512,6 +512,8 @@ def sign_tx(tx_hex, tx_key):
 
 	tx_structure = deserialize(tx_hex)
 
+	print (tx_structure)
+
 	for i in range(0, len(tx_structure['ins'])):
 
 		tx_hex = sign(tx_hex, i, tx_key)
